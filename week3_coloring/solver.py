@@ -24,8 +24,12 @@ def solve_it(input_data):
     # straight forward greedy algorithm
     # first node has color 0
     upperbound = set(range(node_count))
-    colors[0] = 0
-    for i in range(1, node_count):
+
+    # sort by degree decending
+    node_order = sorted(edges.keys(), key=lambda x: len(edges[x]), reverse=True)
+
+    colors[node_order[0]] = 0
+    for i in node_order[1:]:
         neighbours = {colors[j] for j in edges[i] if colors[j] != None}
         lowest_available = min(upperbound - neighbours)
         colors[i] = lowest_available
