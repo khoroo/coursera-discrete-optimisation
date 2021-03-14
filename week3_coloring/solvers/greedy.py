@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from collections import defaultdict
-from ortools.sat.python import cp_model
 
 def solve_it(input_data):
     # Modify this code to run your optimization algorithm
@@ -14,45 +13,31 @@ def solve_it(input_data):
     node_count = int(first_line[0])
     edge_count = int(first_line[1])
 
-    edges = []
+    edges = defaultdict(list)
     for i in range(1, edge_count + 1):
         line = lines[i]
         u, v = map(int, line.split())
-        edges.append((u, v))
+        edges[u].append(v)
+        edges[v].append(u)
 
+    colors = [None for _ in range(node_count)]
+    # straight forward greedy algorithm
+    # first node has color 0
+    upperbound = set(range(node_count))
 
-    model = cp_model.CpModel()
+    # sort by degree decending
+    node_order = sorted(edges.keys(), key=lambda x: len(edges[x]), reverse=True)
 
-    nodes = [model.NewIntVar(0, node_count, f'node_{i}') for i in range(node_count)]
-    max_color = model.NewIntVar(0, node_count, 'max_color')
-    model.AddMaxEquality(max_color, nodes)
-
-
-    for e in edges:
-        model.Add(nodes[e[0]] != nodes[e[1]])
-
-    for i in range(node_count):
-        model.Add(nodes[i] <= i+1)
-
-
-    model.Minimize(max_color)
-
-    solver = cp_model.CpSolver()
-    solver.parameters.num_search_workers = 4
-    status = solver.Solve(model)
-
-    if status == cp_model.OPTIMAL:
-        opt = 1
-        colors = [solver.Value(n) for n in nodes]
-        obj = solver.Value(max_color) + 1
-    else:
-        opt = 0
-        colors = range(node_count)
-        obj = node_count
+    colors[node_order[0]] = 0
+    for i in node_order[1:]:
+        neighbours = {colors[j] for j in edges[i] if colors[j] != None}
+        lowest_available = min(upperbound - neighbours)
+        colors[i] = lowest_available
 
 
     # prepare the solution in the specified output format
-    output_data = str(obj) + ' ' + str(opt) + '\n'
+    colors_count = len(set(colors))
+    output_data = str(colors_count) + ' ' + str(0) + '\n'
     output_data += ' '.join(map(str, colors))
 
     return output_data
