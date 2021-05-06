@@ -1,67 +1,49 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
-
+import numpy as np
+from numba import njit
+import sys
 from collections import defaultdict
-from ortools.sat.python import cp_model
+
+def welsh_powell(N, nodes):
+    nodes_set = set(i for i in range(N))
+    nodes_degree = {n: len(nodes[n]) for n in range(N)}
+    output = {}
+    col_neighs = set()
+    col = 0
+    while len(output) < N:
+        seen = set(output.keys())
+        pos = nodes_set - seen - col_neighs
+        if len(pos) == 0:
+            col_neighs = set()
+            col += 1
+            continue
+        big_pos = max(pos, key=nodes_degree.__getitem__)
+        output[big_pos] = col
+        col_neighs = col_neighs.union(nodes[big_pos])
+    n_cols = col + 1
+    return n_cols, output
 
 def solve_it(input_data):
-    # Modify this code to run your optimization algorithm
-
-    # parse the input
     lines = input_data.split('\n')
+    parse = lambda x: map(int, x.split())
+    N, E = parse(lines[0])
+    nodes = defaultdict(set)
+    for l in lines[1:-1]:
+        x, y = parse(l)
+        nodes[x].add(y)
+        nodes[y].add(x)
 
-    first_line = lines[0].split()
-    node_count = int(first_line[0])
-    edge_count = int(first_line[1])
+    n_cols, output = welsh_powell(N, nodes)
+    out_node_coloring = ' '.join(str(output[i]) for i in range(N))
+    output_data = f'{n_cols} 0\n{out_node_coloring}'
 
-    edges = []
-    for i in range(1, edge_count + 1):
-        line = lines[i]
-        u, v = map(int, line.split())
-        edges.append((u, v))
-
-
-    model = cp_model.CpModel()
-
-    nodes = [model.NewIntVar(0, node_count, f'node_{i}') for i in range(node_count)]
-    max_color = model.NewIntVar(0, node_count, 'max_color')
-    model.AddMaxEquality(max_color, nodes)
-
-
-    for e in edges:
-        model.Add(nodes[e[0]] != nodes[e[1]])
-
-    for i in range(node_count):
-        model.Add(nodes[i] <= i+1)
-
-
-    model.Minimize(max_color)
-
-    solver = cp_model.CpSolver()
-    solver.parameters.num_search_workers = 4
-    status = solver.Solve(model)
-
-    if status == cp_model.OPTIMAL:
-        opt = 1
-        colors = [solver.Value(n) for n in nodes]
-        obj = solver.Value(max_color) + 1
-    else:
-        opt = 0
-        colors = range(node_count)
-        obj = node_count
-
-
-    # prepare the solution in the specified output format
-    output_data = str(obj) + ' ' + str(opt) + '\n'
-    output_data += ' '.join(map(str, colors))
-
+    
     return output_data
 
 
-import sys
 
 if __name__ == '__main__':
-    import sys
     if len(sys.argv) > 1:
         file_location = sys.argv[1].strip()
         with open(file_location, 'r') as input_data_file:
