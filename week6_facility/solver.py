@@ -84,7 +84,7 @@ def solve_it(input_data):
 
     # Solve
     solver = cp_model.CpSolver()
-    solver.parameters.num_search_workers = 4
+    solver.parameters.num_search_workers = 3
     status = solver.Solve(model)
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
